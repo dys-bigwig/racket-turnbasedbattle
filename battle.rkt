@@ -11,11 +11,12 @@
 (define (reduce-health comb damage)
   (let ([new-health (- (comb-health comb)
                      damage)])
-    (if (> new-health 0)
-      (list (comb-name comb)
-            new-health
-            (comb-strength comb))
-      '())))
+    (list (comb-name comb)
+          new-health
+          (comb-strength comb))))
+
+(define (alive? comb)
+  (> (comb-health comb) 0))
 
 (define (get-input msg)
   (print msg)
@@ -35,7 +36,7 @@
     (let loop ([choice (get-input (comb-name
                                     (car combs)))])
       (case choice
-        [(1) (filter (lambda (c) (not (null? c)))
+        [(1) (filter alive?
                      (list (reduce-health (cadr combs) 1)
                            (car combs)))]
         [else (loop (get-input (comb-name (car combs))))]))))
