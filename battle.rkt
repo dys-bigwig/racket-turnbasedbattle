@@ -1,86 +1,39 @@
-#lang rackjure
+#lang racket
+(require data/collection)
+(require "rng.rkt")
+(require "combs.rkt")
+(require "state.rkt")
 
-; COMBATANT CONSTRUCTORS ;
-(define (make-comb name health strength input-proc type [status '()])
-  {  'name name
-     'health health
-     'strength strength
-     'input-proc input-proc
-     'type type
-     'status status })
+(define (get-action comb)
+  (let ([actions (comb-actions comb)])
+  (if (player? comb)
+    (return (hash-ref actions
+                      (read-player-input!)))
+    (make-chance-choice actions))))
 
-(define (new-player name)
-  (make-comb name
-             10
-             3
-             (λ ()
-                (get-input! read
-                            {1 normal-attack}
-                            "1. ATTACK 2. NOTHING 3. UNIMPLEMENTED 4. FOO"))
-             'PLAYER))
+(define (make-chance-choice choices)
+  (match-define (cons chance choice)
+                (car choices))
+  (do bind-state
+    (rng <- get)
+    (put (drop 1 rng))
+    (if (< (first rng) chance)
+      (return choice)
+      (make-chance-choice (cdr choices)))))
 
-(define (random-slime)
-  (make-comb 'slime
-             5
-             ( random 1 5 )
-             { 1 'ATTACK }
-             'SLIME))
+(define last-one-standing?
+  (compose null? cdr))
 
-; PREDICATES ;
-(define (player? comb)
-  (equal? (comb 'type) 'PLAYER))
+(define (battle combs)
+  (match-define (cons active passive) combs)
+  (cond
+    [(last-one-standing? combs) (return active)]
+    [else
+      (do bind-state
+        (let ([action (get-action active)])
+          action))]))
 
-(define (alive? comb)
-  (> (comb 'health) 0))
+(define erdrick (player "Erdrick" 10 8 (hash 1 'atk) '(asleep) 0))
+(define slib (new-slime))
 
-(define (asleep? comb)
-  (member 'ASLEEP (comb 'status)))
-
-;; I/O ;;
-(define (get-input! input-proc valid-inputs [msg ""])
-  (let loop ()
-    (display msg)
-    (let ([choice (input-proc)])
-      (or (assq choice valid-inputs)
-          (loop)))))
-
-;; BATTLE ;;
-(define (adjust-health comb amount)
-  (let ([new-health (+ (comb 'health)
-                       amount)])
-    (comb 'health new-health)))
-
-(define (reduce-health comb amount)
-  (adjust-health comb (- amount)))
-(define (increase-health comb amount)
-  (adjust-health comb amount))
-
-(define normal-attack
-  (λ (combs)
-     (list (car combs)
-           (reduce-health (cadr combs)
-                          ((car combs) 'strength)))))
-
-(define (last-one-standing? combs)
-  (= (length combs) 1))
-
-(define battle
-  (lambda (player enemy)
-    (let loop ([combs (list player enemy)])
-      (if (last-one-standing? combs)
-        (car combs)
-        (loop (turn (car combs)
-                    (cadr combs)))))))
-
-(define (turn active passive)
-  (if (asleep? active)
-    (list passive active) 
-    (begin
-      (displayln (format "~a's turn"
-                         (active 'name)))
-      (let* ([input ((active 'input-proc))]
-             [action (cdr input)])
-        (~>> (list active passive)
-             action
-             (filter alive?)
-             reverse)))))
+((battle `(,erdrick . ,slib)) (make-rng 1))
