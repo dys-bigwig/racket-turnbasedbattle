@@ -7,4 +7,4 @@ Could serve as a (naive) example of using the state monad in Racket for passing 
 
 Comments/advice/criticism very much appreciated :)
 
-(All credit for the state monad implementation goes to Daniel P. Friedman: http://cswords.com/paper/alamode.pdf)
+(All credit for the state monad implementation goes to Daniel P. Friedman and Cameron Swords: http://cswords.com/paper/alamode.pdf)
