@@ -1,34 +1,36 @@
-#lang rackjure
+#lang racket
 (require data/collection)
 (require "state.rkt")
 (require lens)
-
-(define attack "attack")
-(define hurt "hurt")
-(define heal "heal")
-(define run "run")
+(require fancy-app)
 
 (provide (all-defined-out))
+
+(define hurt "hurt")
+
+(define (attack attacker target)
+  (let ([strength (comb-strength attacker)])
+    (lens-transform comb-health-lens
+                    target
+                    (- _ strength))))
 
 (define (asleep? comb)
   (member 'asleep (comb-status comb)))
 
-;current-curly-dict must be alist to ensure these are sequential
+;must be alist to ensure these are sequential
 (define enemy-behaviour-1
-  '((4/4 . attack)))
+  `((4/4 . ,attack)))
 (define enemy-behaviour-2
-  '((2/4 . hurt)
-    (4/4 . attack)))
-(define enemy-behaviour-3
-  {3/4 hurt})
+  `((4/4 . ,attack)
+    (4/4 . ,attack)))
 
-(struct/lens comb (name health strength actions status) #:transparent)
-(struct player comb (exp) #:transparent)
+(struct/lens comb (name health strength agility actions status) #:transparent)
+(struct player comb () #:transparent)
 (struct enemy comb () #:transparent)
 (define (new-player)
-  (player "Player" 10 7 (hash 1 attack) '() 0))
-(define (new-slime)
-  (enemy "Slib" 3 1 enemy-behaviour-2 '(asleep)))
+  (player "player" 25 28 22 (hash 1 attack) '()))
+(define (new-enemy)
+  (enemy "drakeema" 16 22 26 enemy-behaviour-2 '()))
 (define-struct-lenses player)
 
 (define (read-player-input!)
